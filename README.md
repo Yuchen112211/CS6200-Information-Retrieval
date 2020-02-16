@@ -1,4 +1,4 @@
-#Assignment1 Intructions
+# Assignment1 Intructions
 
 ### How to run
 1. Unzip the compressed file to anywhere suitable.
