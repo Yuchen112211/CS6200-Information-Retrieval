@@ -9,4 +9,4 @@
 3. Open browser, type in: localhost:8000
 4. There's the web page to upload the file. Please only use the files in cfc folder, I wrote everything based on the format as in 'PN 10005'
 
-###
+P.S: Please run under MacOS or Linux, somehow windows Python does not have the BaseHTTPServer built-in package.
