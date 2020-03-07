@@ -1,29 +1,45 @@
 from xml.etree.ElementTree import re
+from collections import defaultdict
+import xml.etree.ElementTree as ET
 
 class article(object):
 
 	def __init__(self, rawInput):
 
 		self.parsed = False
-		rawInput = rawInput.strip()
+
+		root = ET.fromstring(rawInput)
+
 		rawInputLines = rawInput.split('\n')
 		combineString = [rawInputLines[0].split(' ')[-1]]
-		keys = ['PN']
 
 		pattern = '[\\s.,!?:;()<>/=+\"\[\]-]+'
 
-		for line in rawInputLines[1:]:
-			if line[:2] == '  ':
-				combineString[-1] += ' '.join(re.split(pattern,line[1:]))
-			else:
-				keys.append(line[:2])
-				currentStringList = re.split(pattern,line[2:])
-				currentString = ' '.join(currentStringList)
-				combineString.append(currentString)
-
 		self.datas = {}
-		for i in range(len(keys)):
-			self.datas[keys[i]] = combineString[i]
+
+		for record in root:
+			keyTrees = record.getiterator()
+			currentString = ''
+			recordNum = -1
+			for key in keyTrees:
+				if key.tag == 'RECORDNUM':
+					recordNum = int(key.text)
+				else:
+					text = key.text
+					if not text:
+						continue
+					currentString += (' '.join(re.split(pattern,key.text)))
+			self.datas[recordNum] = currentString
+
+
+		# for line in rawInputLines[1:]:
+		# 	if line[:2] == '  ':
+		# 		combineString[-1] += ' '.join(re.split(pattern,line[1:]))
+		# 	else:
+		# 		keys.append(line[:2])
+		# 		currentStringList = re.split(pattern,line[2:])
+		# 		currentString = ' '.join(currentStringList)
+		# 		combineString.append(currentString)
 
 
 	def provideWords(self):
@@ -35,9 +51,16 @@ class article(object):
 		return self.datas['PN']
 
 	def getRecordNumber(self):
-		if 'RF' not in self.datas:
+		if 'RECORDNUM' not in self.datas:
 			return -2
-		if 'RN' not in self.datas:
+		if 'REFERENCES' not in self.datas:
 			return -1
-		return self.datas['RN']
+		return self.datas['RECORDNUM']
 		
+if __name__ == '__main__':
+	file = '/Users/macbookair11/Downloads/cfc-xml/cf74.xml'
+	data = open(file,'r').read()
+	aa = article(data)
+	print aa.datas[3]
+
+

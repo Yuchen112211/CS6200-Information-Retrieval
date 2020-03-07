@@ -1,91 +1,81 @@
-import Article
+from xml.etree.ElementTree import re
+from collections import defaultdict
+import xml.etree.ElementTree as ET
 
 stoplist = ' '.join(open('stoplist.txt', 'r').readlines())
 stopWords = set(stoplist.split())
 
 class inputParser(object):
 	def __init__(self):
-		self.articles = []
-		self.wordAppearance = {}
-		self.appearTimes = 0 
+		self.docText = defaultdict(str)
+		self.wordAppearance = defaultdict(set)
+		self.wordFrequency = defaultdict(int)
+		self.docWordNum = defaultdict(int)
+		self.docNum = [] 
 
-	def getFile(self, inputPath):
-		'''
-		The input of the function is a simple file path.
-		There's no output, put all the data into self variable.
-		'''
-		inputFile = ''
-		try:
-			inputFile = open(inputPath, 'r')
-		except Exception as e:
-			print ("File path \"%s\" does not exists."%inputPath)
-			return
-		else:
-			pass
-		finally:
-			pass
+	def getString(self, rawInput):
 
-		fileData = inputFile.read()
-		articleRaw = fileData.split('\nPN ')
-		
-		for articleText in articleRaw[1:-1]:
-			article = Article.article(articleText)
-			self.articles.append(article)
+		root = ET.fromstring(rawInput)
+		rawInputLines = rawInput.split('\n')
+		combineString = [rawInputLines[0].split(' ')[-1]]
 
-	def getString(self, inputs):
-		fileData = inputs
-		articleRaw = fileData.split('\nPN ')
-		
-		for articleText in articleRaw:
-			article = Article.article(articleText)
-			self.articles.append(article)
+		pattern = '[\\s.,!?:;()<>/=+\"\[\]-]+'
 
+		datas = {}
 
-	def tokenizeWords(self, articleObject):
-		'''
-		The input of the function is an object of article
-		This would be the main function to process the article:
-		1. Remove the stop words.
-			a) Make the words into list-form, all together, regardless of the keys.
-			b) remove all the stop words.
-		2. Tokenize
-		'''
-		words = articleObject.provideWords()
-		recordNum = articleObject.getRecordNumber()
-		if recordNum == -2:
-			return
-		if recordNum == -1:
-			recordNum = self.appearTimes
+		for record in root:
+			keyTrees = record.getiterator()
+			currentString = ''
+			recordNum = -1
+			for key in keyTrees:
+				if key.tag == 'RECORDNUM':
+					recordNum = int(key.text)
+				else:
+					text = key.text
+					if not text:
+						continue
+					currentString += (' '.join(re.split(pattern,key.text)))
+			self.docNum.append(str(recordNum))
+			self.docText[str(recordNum)] = ET.tostring(record, encoding='utf8', method='xml')
+			
+			datas[recordNum] = currentString
 
-
-		for i, word in enumerate(words):
-			word = word.lower().strip()
-			if word not in stopWords:
+		for num in datas:
+			words = re.split(pattern, datas[num])
+			for word in words:
+				word = word.lower().strip()
+				if word in stopWords:
+					continue
 				try:
 					word = int(word)
 					if len(str(word)) == 4 and word >  1800 and word < 2100:
-						if word in self.wordAppearance:
-							self.wordAppearance[word].add(str(int(recordNum)) + '-' + str(i))
-						else:
-							self.wordAppearance[word] = set([str(int(recordNum)) + '-' + str(i)])
+						self.wordAppearance[word].add(str(int(num)))
+
+						self.wordFrequency[(word,str(int(num)))] += 1
+
+						self.docWordNum[str(int(num))] += 1
 				except Exception as e:
 					if word:
-						if word in self.wordAppearance:
-							self.wordAppearance[word].add(str(int(recordNum)) + '-' + str(i))
-						else:
-							self.wordAppearance[word] = set([str(int(recordNum)) + '-' + str(i)])
-		return
+						self.wordAppearance[word].add(str(int(num)))
 
-	def parseAllArticles(self):
-		for i in range(len(self.articles)):
-			if not self.articles[i].parsed:
-				self.appearTimes += 1
-				self.tokenizeWords(self.articles[i])
-				self.articles[i].parsed = True
+						self.wordFrequency[(word,str(num))] += 1
 
-	def printOut(self):
-		return [(i,self.wordAppearance[i]) for i in self.wordAppearance]
+						self.docWordNum[str(int(num))] += 1
 
+	def getAppear(self):
+		return self.wordAppearance
+
+	def getFreq(self):
+		return self.wordFrequency
+
+	def getDocNum(self):
+		return len(self.docNum)
+
+	def getDocID(self):
+		return self.docNum
+
+	def getDocWordNum(self, docID):
+		return self.docWordNum[docID]
 
 # if __name__ == '__main__':
 # 	obj = inputParser()
